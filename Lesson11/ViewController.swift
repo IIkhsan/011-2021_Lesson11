@@ -25,15 +25,22 @@ final class ViewController: UIViewController {
     }
     
     private func getPosts() {
-        networkService.getPosts { result in
-            switch result {
-            case .success(let posts):
-                self.posts = posts
-                DispatchQueue.main.async {
-                    self.tableVIew.reloadData()
+        // запуск кода в глобальной параллельной очереди 
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.networkService.getPosts { result in
+                print("Get posts closure result", Thread.isMainThread)
+                switch result {
+                case .success(let posts):
+                    self.posts = posts
+                    // Желательно обеспечить возврат данны на main очереди
+                    // хотя такие библиотеки как Alamofire сами возвращают данные в main очереди уже,
+                    // что с одной стороны хорошо, но с другой не дает гибкости в управлении выполнения кода не на main очереди
+                    DispatchQueue.main.async {
+                        self.tableVIew.reloadData()
+                    }
+                case .failure(let error):
+                    print(error)
                 }
-            case .failure(let error):
-                print(error)
             }
         }
     }
